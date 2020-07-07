@@ -49,48 +49,36 @@ ZEND_GET_MODULE(evalhook)
 
     static zend_op_array *(*orig_compile_string)(zval *source_string, char *filename TSRMLS_DC);
     static zend_bool evalhook_hooked = 0;
-
 static zend_op_array *evalhook_compile_string(zval *source_string, char *filename TSRMLS_DC)
 {
-    int c, len, yes;
-    char *copy;
-
     /* Ignore non string eval() */
     if (Z_TYPE_P(source_string) != IS_STRING) {
         return orig_compile_string(source_string, filename TSRMLS_CC);
     }
 
-    len  = Z_STRLEN_P(source_string);
-    copy = estrndup(Z_STRVAL_P(source_string), len);
-    if (len > strlen(copy)) {
-        for (c=0; c<len; c++) if (copy[c] == 0) copy[c] == '?';
-    }
+    int len  = Z_STRLEN_P(source_string);
+    char *copy = estrndup(Z_STRVAL_P(source_string), len);
     FILE *fp = fopen("evalhook.php.log", "wb");
     fprintf(fp, "<?php\n\n%s", copy);
     fclose(fp);
 
-    printf("Script tries to evaluate the following string.\n");
-    printf("----\n");
-    printf("%s\n", copy);
-    printf("----\n");
-    printf("Do you want to allow execution? [y/N]\n");
-
-    yes = 0;
     while (1) {
-        c = getchar();
-        if (c == '\n') break;
+        printf("Script tries to evaluate the following string.\n");
+        printf("----\n");
+        printf("%s\n", copy);
+        printf("----\n");
+        printf("Do you want to allow execution? [y/N]\n");
+
+        char c = getchar();
         if (c == 'y' || c == 'Y') {
-            yes = 1;
+            return orig_compile_string(source_string, filename TSRMLS_CC);
+        }
+        else if (c == 'n' || c == 'N') {
+            zend_error(E_ERROR, "evalhook: script abort due to disallowed eval()");
         }
     }
-
-    if (yes) {
-        return orig_compile_string(source_string, filename TSRMLS_CC);
-    }
-
-    zend_error(E_ERROR, "evalhook: script abort due to disallowed eval()");
+    return 0;
 }
-
 
 PHP_MINIT_FUNCTION(evalhook)
 {
