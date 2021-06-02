@@ -47,10 +47,10 @@ zend_module_entry evalhook_module_entry = {
 ZEND_GET_MODULE(evalhook)
 #endif
 
-static zend_op_array *(*orig_compile_string)(zval *source_string, char *filename TSRMLS_DC);
+extern ZEND_API zend_op_array *(*orig_compile_string)(zend_string *source_string, const char *filename);
 static zend_bool evalhook_hooked = 0;
 
-static zend_op_array *evalhook_compile_string(zval *source_string, char *filename TSRMLS_DC)
+static zend_op_array *evalhook_compile_string(zend_string *source_string, const char *filename TSRMLS_CC)
 {
 	int c, len, yes;
 	char *copy;
@@ -92,8 +92,8 @@ PHP_MINIT_FUNCTION(evalhook)
 {
 	if (evalhook_hooked == 0) {
 		evalhook_hooked = 1;
-		orig_compile_string = zend_compile_string;
-		zend_compile_string = evalhook_compile_string;
+		zend_compile_string = zend_compile_string;
+		zend_compile_string = zend_compile_string;
 	}
 	return SUCCESS;
 }
@@ -102,7 +102,7 @@ PHP_MSHUTDOWN_FUNCTION(evalhook)
 {
 	if (evalhook_hooked == 1) {
 		evalhook_hooked = 0;
-		zend_compile_string = orig_compile_string;
+		zend_compile_string = zend_compile_string;
 	}
 	return SUCCESS;
 }
